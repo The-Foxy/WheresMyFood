@@ -1,0 +1,9 @@
+<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><title>تست اسکرول منوی تدریجی</title><style>body{font:16px Tahoma;background:#fcfaf6;padding:25px;color:#245c4a}#main-container{height:420px;max-width:600px;overflow:auto;border:2px solid #ddd;border-radius:18px;background:white;padding:20px}section{height:600px;border-bottom:1px solid #ddd}#status{font-weight:bold}#target-card{padding:20px;background:#eff4e8;border-radius:10px}</style><h2>تست ظرف اسکرول و بارگذاری تدریجی</h2><p>این صفحه فقط دادهٔ آزمایشی داره؛ از همان کد اسکرول افزونه استفاده می‌کنه.</p><p id="status">در انتظار پیدا شدن هدف…</p><div id="main-container"><section>بخش اول منو؛ هدف هنوز ساخته نشده.</section></div><script type="module">
+import {installFoodFocus} from '../src/food-focus.js';
+const root=document.getElementById('main-container');let count=1;
+root.addEventListener('scroll',()=>{if(root.scrollTop+root.clientHeight<root.scrollHeight-200||count>=4)return;count++;const section=document.createElement('section');section.textContent='بخش '+count+' منو';root.append(section);if(count===4){const target=document.createElement('div');target.id='123';target.textContent='غذای هدف — شناسهٔ ۱۲۳';section.prepend(target);}});
+const mockLocation={origin:'https://snappfood.ir',pathname:'/restaurant/menu/abc/',hash:'#sf-food=123'};
+const win={get location(){return mockLocation;},matchMedia:window.matchMedia.bind(window),MutationObserver,addEventListener:window.addEventListener.bind(window),removeEventListener:window.removeEventListener.bind(window)};
+installFoodFocus(win,document);
+new MutationObserver(()=>{const target=document.getElementById('123');if(target?.style.outline){document.getElementById('status').textContent='هدفِ دیر بارگذاری‌شده پیدا و مشخص شد ✓';}}).observe(root,{attributes:true,childList:true,subtree:true});
+</script></html>

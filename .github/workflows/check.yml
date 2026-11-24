@@ -1,0 +1,26 @@
+name: Check extension and updater
+on:
+  push:
+    branches: ['**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: npm test
+      - run: node --check src/content.js
+      - run: node --input-type=module -e "await import('./src/app.js')"
+      - run: python -m unittest discover -s tests/updater -v
+      - run: python tools/package.py

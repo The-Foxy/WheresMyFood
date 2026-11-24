@@ -1,0 +1,12 @@
+{
+  "name": "snappfood-local-assistant",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "preview": "python3 -m http.server 18770 --bind 127.0.0.1",
+    "package": "python3 tools/package.py",
+    "test:updater": "python3 -m unittest discover -s tests/updater -v"
+  }
+}

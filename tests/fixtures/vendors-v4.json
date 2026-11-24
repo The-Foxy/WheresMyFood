@@ -1,0 +1,24 @@
+{
+  "status": true,
+  "data": {
+    "count": 22,
+    "open_count": 21,
+    "count_details": {"vendor_index": 2, "item_index": 4},
+    "finalResult": [
+      {"type": "TEXT", "data": "فروشگاه‌های نمونه"},
+      {"type": "BANNER", "data": {"id": 101}},
+      {"type": "VENDOR", "data": {
+        "vendorCode": "abc101", "title": "کافهٔ نمونه", "rate": 4.7,
+        "rating": 9.3537, "normalized_rating": 9.3537,
+        "commentCount": 120, "eta": 25, "isOpen": true,
+        "deliver": true, "superTypeAlias": "CAFFE", "deliveryFee": 42500,
+        "isDeliveryFeeHasDiscount": false, "deliveryFeeAfterDiscount": 0
+      }},
+      {"type": "VENDOR", "data": {
+        "vendorCode": "def202", "title": "کافهٔ بستهٔ نمونه",
+        "rate": 4.5, "normalized_rating": 9, "eta": 20,
+        "isOpen": false, "deliver": true, "superTypeAlias": "CAFFE"
+      }}
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "name": "غذام کو؟",
+  "description": "پیداکردن غذا با قیمت خود غذا، زمان تحویل و امتیاز رستوران، داخل مرورگر خودت.",
+  "version": "1.0.0",
+  "minimum_chrome_version": "111",
+  "permissions": [
+    "scripting",
+    "storage",
+    "alarms",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "https://snappfood.ir/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "باز کردن غذام کو؟",
+    "default_icon": {
+      "16": "icons/mark-16.png",
+      "32": "icons/mark-32.png",
+      "48": "icons/mark-48.png",
+      "128": "icons/mark-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://snappfood.ir/*"
+      ],
+      "js": [
+        "src/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/app.js",
+        "src/core.js",
+        "src/engine.js",
+        "src/food-focus.js",
+        "styles.css",
+        "icons/mark.svg",
+        "src/categories.js",
+        "src/product-categories.js",
+        "src/auto-update.js"
+      ],
+      "matches": [
+        "https://snappfood.ir/*"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  },
+  "icons": {
+    "16": "icons/mark-16.png",
+    "32": "icons/mark-32.png",
+    "48": "icons/mark-48.png",
+    "128": "icons/mark-128.png"
+  }
+}
