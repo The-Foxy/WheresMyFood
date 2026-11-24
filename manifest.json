@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "غذام کو؟",
   "description": "پیداکردن غذا با قیمت خود غذا، زمان تحویل و امتیاز رستوران، داخل مرورگر خودت.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minimum_chrome_version": "111",
   "permissions": [
     "scripting",

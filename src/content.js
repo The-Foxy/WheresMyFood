@@ -27,12 +27,6 @@
     if (opening && !mounted) {
       const { mountApp } = await import(chrome.runtime.getURL('src/app.js'));
       mounted = mountApp(panel, {
-        renderMenu: async (code, signal, service='restaurant') => {
-          const cancel = () => { void send({type:'SF_RENDER_CANCEL'}).catch(() => {}); };
-          signal?.throwIfAborted(); signal?.addEventListener('abort',cancel,{once:true});
-          try { return await send({type:'SF_RENDER',code,service}); }
-          finally { signal?.removeEventListener('abort',cancel); }
-        },
         context: () => send({ type: 'SF_CONTEXT' }),
         read: async (operation, value) => (await send({ type: 'SF_READ', operation, value })).data,
       }, {

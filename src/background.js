@@ -1,7 +1,5 @@
 import { searchScope } from './categories.js';
-import { readRenderedMenu } from './rendered-menu.js';
 import { installAutoUpdater } from './auto-update.js';
-const renderJobs = new Map();
 let activeReads=0;
 import { validCode } from './core.js';
 
@@ -118,24 +116,15 @@ export function requestParameters(operation, value) {
 }
 
 if (globalThis.chrome?.runtime?.onMessage) {
-  const updater=installAutoUpdater(chrome,{hasActiveRequests:()=>activeReads>0 || renderJobs.size>0});
+  const updater=installAutoUpdater(chrome,{hasActiveRequests:()=>activeReads>0});
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
-    if (sender.id !== chrome.runtime.id || !sender.tab?.id || !sender.tab.url?.startsWith(SITE + '/') || !['SF_CONTEXT', 'SF_READ', 'SF_RENDER', 'SF_RENDER_CANCEL','SF_UPDATER_STATUS','SF_UPDATER_CHECK','SF_UPDATER_IDLE'].includes(message?.type)) return false;
+    if (sender.id !== chrome.runtime.id || !sender.tab?.id || !sender.tab.url?.startsWith(SITE + '/') || !['SF_CONTEXT', 'SF_READ', 'SF_UPDATER_STATUS', 'SF_UPDATER_CHECK', 'SF_UPDATER_IDLE'].includes(message?.type)) return false;
     (async () => {
       if(message.type==='SF_UPDATER_STATUS'){reply(await updater.status());return;}
       if(message.type==='SF_UPDATER_CHECK'){void updater.check();reply({state:'checking'});return;}
       if(message.type==='SF_UPDATER_IDLE'){await updater.idle();reply({ok:true});return;}
       const target = { tabId: sender.tab.id };
-      if (message.type === 'SF_RENDER_CANCEL') { renderJobs.get(sender.tab.id)?.abort(); reply({ok:true}); return; }
       if(updater.isApplying()){reply({error:'نسخهٔ جدید ابزار در حال آماده‌شدنه؛ چند لحظه صبر کن.',fatal:true});return;}
-      if (message.type === 'SF_RENDER') {
-        if (renderJobs.has(sender.tab.id)) { reply({error:'این منو هنوز در حال بررسیه.'}); return; }
-        const controller = new AbortController(); renderJobs.set(sender.tab.id,controller);
-        try { reply(await readRenderedMenu(chrome,message.code,controller.signal,undefined,message.service ?? 'restaurant')); }
-        catch (e) { reply({error:controller.signal.aborted ? 'بررسی قیمت متوقف شد.' : e.message}); }
-        finally { renderJobs.delete(sender.tab.id); }
-        return;
-      }
       activeReads++;
       try{
         const result = message.type === 'SF_CONTEXT'
@@ -147,7 +136,6 @@ if (globalThis.chrome?.runtime?.onMessage) {
     })().catch(() => reply({ error: 'افزونه به این تب دسترسی پیدا نکرد؛ صفحهٔ اسنپ‌فود رو تازه کن.' }));
     return true;
   });
-  chrome.tabs.onRemoved?.addListener(id => renderJobs.get(id)?.abort());
   chrome.action.onClicked.addListener(async tab => {
     if (tab.url?.startsWith(SITE + '/')) { try { await chrome.tabs.sendMessage(tab.id, { type: 'SF_TOGGLE' }); } catch { await chrome.tabs.reload(tab.id); } }
     else await chrome.tabs.create({ url: SITE + '/' });

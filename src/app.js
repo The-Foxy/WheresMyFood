@@ -16,11 +16,19 @@ function icon(name) { const s = document.createElementNS('http://www.w3.org/2000
 function element(tag, className, text) { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
 
 export function mountApp(root, transport, { demo = false, loadPreferences = async () => ({}), savePreferences = async () => {}, onClose = null, imageFor = row => row.image, canStart=()=>true, onIdle=()=>{}, updater=null } = {}) {
+  const versionControl = updater
+    ? `<button class="sf-local sf-version-btn" type="button" aria-expanded="false" aria-haspopup="dialog" aria-label="نسخه v${APP_VERSION} و به‌روزرسانی"><i></i><span dir="ltr">v${APP_VERSION}</span></button>
+       <div class="sf-update-popover" role="dialog" aria-label="به‌روزرسانی ابزار" hidden>
+         <div class="sf-update-popover-head"><b>به‌روزرسانی ابزار</b><span dir="ltr">v${APP_VERSION}</span></div>
+         <p class="sf-update-status" aria-live="polite"></p>
+         <button class="sf-check-update" type="button">بررسی نسخهٔ جدید</button>
+       </div>`
+    : `<span class="sf-local"><i></i><span dir="ltr">v${APP_VERSION}</span></span>`;
   root.innerHTML = `
     <div class="sf-app" dir="rtl">
       <header class="sf-header">
         <div class="sf-brand"><span class="sf-mark"></span><div><h1>${APP_NAME}</h1><p>یه انتخاب خوشمزه، با حساب و کتاب خودت.</p></div></div>
-        <div class="sf-header-tools"><span class="sf-local"><i></i>${demo ? 'پیش‌نمایش لوکال' : 'داخل مرورگر خودت'} <small dir="ltr">v${APP_VERSION}</small></span>${onClose ? '<button class="sf-close" type="button" aria-label="بستن پنل">×</button>' : ''}</div>
+        <div class="sf-header-tools"><div class="sf-version-wrap">${versionControl}</div>${onClose ? '<button class="sf-close" type="button" aria-label="بستن پنل">×</button>' : ''}</div>
       </header>
       ${demo ? '<div class="sf-demo-note"><b>حالت نمایشی</b><span>داده‌های این صفحه نمونه‌ان. جستجوی واقعی با افزونه، داخل تب اسنپ‌فود انجام می‌شه.</span><a href="../install.html">نصب نسخهٔ واقعی ↗</a></div>' : ''}
       <div class="sf-layout">
@@ -31,8 +39,6 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
             <fieldset><legend>قیمت خود غذا <span>تومان</span></legend><div class="sf-price-fields"><label>از<input name="minPrice" type="text" inputmode="numeric" autocomplete="off" required></label><span class="sf-range-line">—</span><label>تا<input name="maxPrice" type="text" inputmode="numeric" autocomplete="off" required></label></div></fieldset>
             <div class="sf-pair"><label>حداکثر زمان تحویل<div class="sf-unit-input"><input name="maxTime" type="number" min="5" max="180" required><span>دقیقه</span></div></label><label>حداقل امتیاز فروشگاه<select name="minRating"><option value="0">فرقی نداره</option><option value="3">۳ به بالا</option><option value="3.5">۳٫۵ به بالا</option><option value="4">۴ به بالا</option><option value="4.3">۴٫۳ به بالا</option><option value="4.5">۴٫۵ به بالا</option><option value="4.7">۴٫۷ به بالا</option></select></label></div>
             <label class="sf-query-label">غذای خاصی تو ذهنته؟ <span>اختیاری</span><input name="query" placeholder="مثلاً پیتزا، کباب، سالاد…" maxlength="80" autocomplete="off"></label>
-            <details class="sf-price-options"><summary>بررسی دقیق‌تر قیمت</summary><label class="sf-checkbox"><input type="checkbox" name="verifyPrices"><span>تطبیق با صفحهٔ اسنپ‌فود — کندتر</span></label><p>با فعال‌کردنش، برای هر رستوران یه تب موقت باز و بسته می‌شه تا قیمت خود صفحه خونده بشه. حالت سریع قیمت پاسخ منو رو می‌گیره؛ ممکنه کوپن‌های شرطی سفارش توش نباشن.</p></details>
-            <details class="sf-update-options" ${updater?'':'hidden'}><summary>به‌روزرسانی ابزار</summary><p class="sf-update-status" aria-live="polite"></p><button class="sf-check-update" type="button">بررسی نسخهٔ جدید</button></details>
             <button class="sf-start" type="submit"><span class="sf-search-icon"></span><span>غذامو پیدا کن</span></button>
             <div class="sf-run-actions" hidden><button class="sf-stop" type="button">توقف جستجو</button><button class="sf-resume" type="button" hidden>ادامه از همین‌جا</button></div>
             <p class="sf-form-error" role="alert" hidden></p>
@@ -61,18 +67,25 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
     </div>`;
   const $ = selector => root.querySelector(selector), form = $('.sf-form');
   $('.sf-mark').append(icon('fork')); $('.sf-search-icon').append(icon('search')); $('.sf-empty-symbol').append(icon('fork'));
-  if (onClose) $('.sf-close').onclick = onClose;
+  const versionWrap = $('.sf-version-wrap'), versionBtn = $('.sf-version-btn'), updatePopover = $('.sf-update-popover');
+  const closeUpdatePopover = (restoreFocus = false) => {
+    if (!updatePopover || updatePopover.hidden) return;
+    updatePopover.hidden = true;
+    versionBtn?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) versionBtn?.focus();
+  };
+  if (onClose) $('.sf-close').onclick = () => { closeUpdatePopover(); onClose(); };
   let busy = false, current = null, shown = 36, uiTimer = null, startedFilters = null, resultCategory = 'all';
   const scanner = new Scanner(transport, onUpdate, { pause: demo ? 60 : 450 });
-  const fields = ['service','foodType','minPrice', 'maxPrice', 'maxTime', 'minRating', 'query', 'verifyPrices'];
+  const fields = ['service', 'foodType', 'minPrice', 'maxPrice', 'maxTime', 'minRating', 'query'];
   const input = name => form.elements.namedItem(name);
-  function values() { const result = Object.fromEntries(fields.map(name => [name, name==='verifyPrices' ? input(name).checked : input(name).value])); return { ...result, hideExtras:false, sort: $('[name="sort"]').value }; }
+  function values() { const result = Object.fromEntries(fields.map(name => [name, input(name).value])); return { ...result, hideExtras:false, sort: $('[name="sort"]').value }; }
   function syncCategories() { const restaurant=input('service').value==='restaurant'; $('.sf-food-type-field').hidden=!restaurant; $('.sf-categories').classList.toggle('sf-single',!restaurant); input('foodType').disabled=busy||!restaurant; }
   input('service').onchange=()=>{input('foodType').value='';syncCategories();};
-  function setValues(v) { for (const name of fields) if (v[name] !== undefined) { if (name==='verifyPrices') input(name).checked = v[name]; else input(name).value = name === 'minPrice' || name === 'maxPrice' ? new Intl.NumberFormat('en-US').format(v[name]) : String(v[name]); } if (v.sort) $('[name="sort"]').value = v.sort; syncCategories(); }
+  function setValues(v) { for (const name of fields) if (v[name] !== undefined) input(name).value = name === 'minPrice' || name === 'maxPrice' ? new Intl.NumberFormat('en-US').format(v[name]) : String(v[name]); if (v.sort) $('[name="sort"]').value = v.sort; syncCategories(); }
   for (const name of ['minPrice', 'maxPrice']) input(name).addEventListener('blur', () => { const n = number(input(name).value); if (n !== null) input(name).value = new Intl.NumberFormat('en-US').format(n); });
   setValues(defaults);
-  loadPreferences().then(v => { if (!busy && !current) { try { setValues(validateFilters({ ...defaults, ...v, verifyPrices:false })); } catch { setValues(defaults); } } }).catch(() => {});
+  loadPreferences().then(v => { if (!busy && !current) { try { setValues(validateFilters({ ...defaults, ...v })); } catch { setValues(defaults); } } }).catch(() => {});
   function setBusy(value) { busy = value; $('.sf-start').disabled = value; for (const name of fields) input(name).disabled = value; syncCategories(); $('.sf-stop').hidden = !value; $('.sf-resume').hidden = value || !current || !['stopped', 'paused', 'partial'].includes(current.state); $('.sf-run-actions').hidden = !value && $('.sf-resume').hidden; }
   async function run(resume) {
     if (busy) return;
@@ -91,13 +104,26 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
   $('.sf-resume').onclick = () => void run(true);
   $('[name="sort"]').onchange = () => { renderResults(); if (!busy) savePreferences(validateFilters(values())).catch(() => {}); };
   $('.sf-more').onclick = () => { shown += 36; renderResults(); };
-  function setUpdateStatus(status){$('.sf-update-status').textContent=updateText(status);}
-  if(updater){
-    void updater.status().then(setUpdateStatus).catch(()=>setUpdateStatus({code:'native_unavailable'}));
-    $('.sf-check-update').onclick=async()=>{
-      $('.sf-check-update').disabled=true;
-      try{setUpdateStatus(await updater.check());}catch{setUpdateStatus({code:'native_unavailable'});}
-      finally{$('.sf-check-update').disabled=false;}
+  function setUpdateStatus(status) {
+    const statusEl = $('.sf-update-status');
+    if (statusEl) statusEl.textContent = updateText(status);
+    if (versionBtn) versionBtn.dataset.updateState = status?.state ?? '';
+  }
+  if (updater && versionBtn && updatePopover) {
+    versionBtn.onclick = () => {
+      const opening = updatePopover.hidden;
+      updatePopover.hidden = !opening;
+      versionBtn.setAttribute('aria-expanded', String(opening));
+      if (opening) void updater.status().then(setUpdateStatus).catch(() => setUpdateStatus({ code: 'native_unavailable' }));
+    };
+    root.addEventListener('pointerdown', e => { if (!updatePopover.hidden && !versionWrap.contains(e.target)) closeUpdatePopover(); });
+    root.addEventListener('keydown', e => { if (e.key === 'Escape' && !updatePopover.hidden) { e.stopPropagation(); closeUpdatePopover(true); } });
+    void updater.status().then(setUpdateStatus).catch(() => setUpdateStatus({ code: 'native_unavailable' }));
+    $('.sf-check-update').onclick = async () => {
+      $('.sf-check-update').disabled = true;
+      try { setUpdateStatus(await updater.check()); }
+      catch { setUpdateStatus({ code: 'native_unavailable' }); }
+      finally { $('.sf-check-update').disabled = false; }
     };
   }
   const categoryButtons=new Map();
@@ -122,7 +148,7 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
     current = value;
     const box = $('.sf-progress-box'), active = ['listing', 'menus'].includes(value.state); box.hidden = false;
     const labels = { listing: 'داریم فروشگاه‌های این بخش رو پیدا می‌کنیم…', menus: 'منوهای مناسب رو بررسی می‌کنیم…', complete: 'بررسی این نوبت تموم شد', partial: 'بررسی با چند مورد ناقص تموم شد', paused: 'جستجو فعلاً مکث کرده', stopped: 'جستجو متوقف شد؛ نتیجه‌ها همین‌جا موندن', 'location-changed': 'آدرس عوض شد؛ یه جستجوی تازه لازمه' };
-    $('.sf-progress-title b').textContent = value.priceChecking ? `قیمت‌های منوی ${value.priceChecking} رو می‌خونیم…` : labels[value.state];
+    $('.sf-progress-title b').textContent = labels[value.state];
     $('.sf-progress-title span').textContent = value.state === 'listing' ? `صفحهٔ ${fa(value.page + 1)}` : `${fa(value.checked)} از ${fa(value.eligible)} منو`;
     const progress = $('progress');
     if (value.state === 'listing') progress.removeAttribute('value'); else progress.value = value.eligible ? Math.min(100, 100 * value.checked / value.eligible) : value.state === 'complete' ? 100 : 0;
@@ -135,7 +161,7 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
     const notices = $('.sf-notices'); notices.replaceChildren();
     for (const message of [...value.notes, ...(value.message ? [value.message] : [])]) notices.append(element('p', 'sf-warning', message));
     const errors = $('.sf-errors'); errors.hidden = !value.errors.length;
-    $('.sf-errors summary').textContent = `${fa(value.errors.length)} منو یا قیمت کامل دریافت نشد؛ جزئیات`;
+    $('.sf-errors summary').textContent = `${fa(value.errors.length)} منو کامل دریافت نشد؛ جزئیات`;
     $('.sf-errors ul').replaceChildren(...value.errors.map(e => element('li', '', `${e.title}: ${e.message}`)));
     setBusy(active); refreshRetry(); renderResults();
   }
@@ -164,7 +190,6 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
       if (startedFilters.foodType) scope.push(getFoodType(startedFilters.foodType)?.label ?? '');
       scope.push(`${fa(startedFilters.minPrice)} تا ${fa(startedFilters.maxPrice)} تومان`, `تا ${fa(startedFilters.maxTime)} دقیقه`, startedFilters.minRating ? 'امتیاز ' + fa(startedFilters.minRating) + ' به بالا' : 'بدون محدودیت امتیاز');
       if (startedFilters.query) scope.push(`عبارت: «${startedFilters.query}»`);
-      scope.push(startedFilters.verifyPrices ? 'تطبیق قیمت با صفحه' : 'جستجوی سریع، بدون تب اضافه');
     }
     $('.sf-result-scope').textContent = scope.join(' · ');
     for (const row of list.slice(0, shown)) {
@@ -182,8 +207,6 @@ export function mountApp(root, transport, { demo = false, loadPreferences = asyn
       const badges = element('div', 'sf-badges');
       const rating = element('span', 'sf-rating'); rating.append(icon('star'), document.createTextNode(row.rating === null ? 'بدون امتیاز' : fa(row.rating)));
       const time = element('span', 'sf-time'); time.append(icon('clock'), document.createTextNode(`${fa(row.eta)} دقیقه`)); badges.append(rating, time); body.append(badges);
-      if (row.proApplied) body.append(element('span', 'sf-pro', row.proLabel));
-      if (row.proOffer) body.append(element('p', 'sf-pro-condition', row.proOffer));
       if (row.foodRating !== null && row.foodRating !== undefined) body.append(element('small', 'sf-food-rating', `امتیاز خود غذا: ${fa(row.foodRating)}`));
       const delivery = element('div', 'sf-delivery'), fee = element('span', 'sf-delivery-value');
       if (row.deliveryFee !== null && row.deliveryFee !== undefined && Number.isFinite(row.deliveryFee)) {

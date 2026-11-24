@@ -5,7 +5,7 @@ export class SourceError extends Error {
     super(message); this.name = 'SourceError'; Object.assign(this, options);
   }
 }
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.1.0';
 export const APP_NAME = 'غذام کو؟';
 
 export function number(value) {
@@ -39,13 +39,13 @@ export function safeImage(value) {
 }
 export function validateFilters(input) {
   const scope = searchScope(input.service ?? 'restaurant', input.foodType ?? '');
-  const f = { ...scope, minPrice: number(input.minPrice), maxPrice: number(input.maxPrice), maxTime: number(input.maxTime), minRating: number(input.minRating), query: String(input.query ?? '').trim().slice(0, 80), hideExtras: scope.service === 'restaurant' && input.hideExtras !== false, verifyPrices: input.verifyPrices === true, sort: ['rating', 'price', 'time'].includes(input.sort) ? input.sort : 'rating' };
+  const f = { ...scope, minPrice: number(input.minPrice), maxPrice: number(input.maxPrice), maxTime: number(input.maxTime), minRating: number(input.minRating), query: String(input.query ?? '').trim().slice(0, 80), hideExtras: scope.service === 'restaurant' && input.hideExtras !== false, sort: ['rating', 'price', 'time'].includes(input.sort) ? input.sort : 'rating' };
   if (f.minPrice === null || f.maxPrice === null || f.minPrice < 0 || f.maxPrice <= 0 || f.minPrice > f.maxPrice || f.maxPrice > 100000000) throw new SourceError('محدودهٔ قیمت رو درست وارد کن؛ سقف قیمت باید از کفش کمتر نباشه.');
   if (f.maxTime === null || f.maxTime < 5 || f.maxTime > 180) throw new SourceError('حداکثر زمان رو بین ۵ تا ۱۸۰ دقیقه وارد کن.');
   if (f.minRating === null || f.minRating < 0 || f.minRating > 5) throw new SourceError('امتیاز باید بین صفر تا پنج باشه.');
   return f;
 }
-export const defaults = Object.freeze({ service:'restaurant', foodType:'', minPrice: 150000, maxPrice: 400000, maxTime: 40, minRating: 4, query: '', hideExtras: true, verifyPrices: false, sort: 'rating' });
+export const defaults = Object.freeze({ service:'restaurant', foodType:'', minPrice: 150000, maxPrice: 400000, maxTime: 40, minRating: 4, query: '', hideExtras: true, sort: 'rating' });
 
 export function deliveryQuote(value) {
   const nonnegative = v => { const n = number(v); return n !== null && n >= 0 ? n : null; };
@@ -175,14 +175,13 @@ export function menuItems(payload, vendor, stamp = Date.now()) {
         const price = finalPrice(value);
         if (price === null) { if (!states.has(String(id))) states.set(String(id), 'unknownPrice'); continue; }
         states.set(String(id), 'available');
-        const quote = { price, proApplied:false, proLabel:'', priceSource:'api' };
         const existingIndex = rows.findIndex(row => row.variationId === String(id));
-        if (existingIndex >= 0 && rows[existingIndex].price <= quote.price) continue;
+        if (existingIndex >= 0 && rows[existingIndex].price <= price) continue;
         const parentId = parentProductId ?? numericId(value.productId ?? value.product_id);
         const row = { id: `${vendor.code}:${id}`, productId: String(id), variationId: String(id), parentProductId: parentId, vendorCode: vendor.code, vendor: vendor.title, service: vendor.service ?? 'restaurant',
           title: String(p.title ?? value.title ?? '').slice(0, 400), variation: variation !== p ? String(variation.title ?? '') : String(value.portionTitle ?? ''),
           category: categories.get(String(id))?.category ?? String(value.menuCategoryTitle ?? value.categoryTitle ?? menu.category ?? ''),
-          categoryId: categories.get(String(id))?.categoryId ?? null, ...quote, originalPrice: number(value.price),
+          categoryId: categories.get(String(id))?.categoryId ?? null, price, originalPrice: number(value.price),
           rating: vendor.rating, foodRating: stars(value.normalized_rating), eta: vendor.eta, reviews: vendor.reviews,
           deliveryFee: vendor.deliveryFee ?? null, originalDeliveryFee: vendor.originalDeliveryFee ?? null,
           image: safeImage(value.image ?? value.imageUrl ?? p.image), checkedAt: new Date(stamp).toISOString(),

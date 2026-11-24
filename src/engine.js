@@ -1,4 +1,4 @@
-import { SourceError, foodLink, vendorPage, eligible, menuItems, exclusionReason, validateFilters } from './core.js';
+import { SourceError, vendorPage, eligible, menuItems, exclusionReason, validateFilters } from './core.js';
 
 export function contextKey(c) { return `${c.lat}:${c.long}`; }
 export function abortableDelay(ms, signal) {
@@ -30,7 +30,7 @@ export class Scanner {
       const audit = { totalOptions: 0, availableOptions: 0, unavailable: 0, unknownPrice: 0, missingIds: 0, closedMenu: 0, price: 0, query: 0, extras: 0, time: 0, rating: 0, matched: 0 };
       for (const stats of c.menuStats.values()) for (const key of Object.keys(audit)) audit[key] += stats[key] ?? 0;
       this.emit({ state, page: c.page, vendors: c.vendors.size, eligible: [...c.vendors.values()].filter(v => eligible(v, filters)).length,
-        priceChecking: c.priceChecking ?? '', checked: c.done.size, rows: [...c.rows.values()], audit, errors: [...c.errors], notes: [...c.notes], message: c.lastError, requests: c.requests, elapsed: Date.now() - c.started, retryAt: c.retryAt ?? null });
+        checked: c.done.size, rows: [...c.rows.values()], audit, errors: [...c.errors], notes: [...c.notes], message: c.lastError, requests: c.requests, elapsed: Date.now() - c.started, retryAt: c.retryAt ?? null });
     };
     const checkLocation = async () => {
       signal.throwIfAborted(); const live = await this.transport.context();
@@ -62,26 +62,7 @@ export class Scanner {
         await checkLocation();
         try {
           const menu = await read('menu', { code: vendor.code });
-          let items = menuItems(menu, vendor), renderComplete=true;
-          if (filters.verifyPrices && this.transport.renderMenu) {
-            c.priceChecking = vendor.title; update();
-            try {
-              const rendered = await this.transport.renderMenu(vendor.code,signal,vendor.service); signal.throwIfAborted(); await checkLocation();
-              const quotes = new Map();
-              for (const q of rendered.quotes ?? []) { const old=quotes.get(q.id); if (!old || q.price<old.price) quotes.set(q.id,q); }
-              const stats = {...items.stats}; let missingRendered=0; const seenPrices=new Set();
-              items = items.filter(row => {
-                const q=quotes.get(row.variationId) ?? quotes.get(row.variationId.replace(/-special$/,''));
-                if (!q || !Number.isFinite(q.price) || q.price < 0) { stats.unknownPrice++; stats.availableOptions--; missingRendered++; return false; }
-                if (seenPrices.has(q.id)) {stats.totalOptions--;stats.availableOptions--;return false;}
-                seenPrices.add(q.id);
-                Object.assign(row,{id:`${vendor.code}:${q.id}`,price:q.price, originalPrice:q.originalPrice ?? row.originalPrice, proApplied:q.proPercent>0, proLabel:q.proPercent>0 ? `قیمت منو با تخفیف پرو ${q.proPercent}٪` : '', priceSource:'rendered', ...foodLink(vendor.code,row.parentProductId,q.id,row.title,vendor.service), variationId:q.id, productId:q.id, menuUrl:`https://snappfood.ir/${vendor.service}/menu/${vendor.code}/#sf-food=${q.id}`});
-                return true;
-              });
-              Object.defineProperty(items,'stats',{value:stats});
-              renderComplete=rendered.complete && missingRendered===0;
-            } finally { c.priceChecking=''; update(); }
-          }
+          const items = menuItems(menu, vendor);
           const stats = {...items.stats,matched:0};
           for (const [id,row] of c.rows) if (row.vendorCode===vendor.code) c.rows.delete(id);
           for (const item of items) {
@@ -90,10 +71,9 @@ export class Scanner {
             else { c.rows.set(item.id, item); stats.matched++; }
           }
           c.menuStats.set(vendor.code, stats);
-          if (renderComplete) c.done.add(vendor.code);
+          c.done.add(vendor.code);
           rejectedMenus = 0;
           c.errors = c.errors.filter(e => e.code !== vendor.code);
-          if (!renderComplete) c.errors.push({code:vendor.code,title:vendor.title,message:'قیمت همهٔ گزینه‌های منو تأیید نشد؛ فقط قیمت‌های خوانده‌شده نمایش داده شدن. می‌تونی دوباره تلاش کنی.'});
         } catch (e) {
           if (e.name === 'AbortError' || e.fatal || e.retryAt || e.locationChanged) throw e;
           c.errors = c.errors.filter(x => x.code !== vendor.code);

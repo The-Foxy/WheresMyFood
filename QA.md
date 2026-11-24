@@ -369,3 +369,9 @@ GitHub. Screenshot auto-update-preview-v0.4.0.png shows this sample UI.
 - Relaxed `updater/updater.py` file-path allowlist to accept safe nested web-extension assets (`.js`, `.mjs`, `.css`, `.html`, `.json`, `.svg`, `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif`, `.ico`, `.woff`, `.woff2`, `.ttf`, `.otf`, `.txt`, `.md`, `.wasm`), wildcard patterns in `web_accessible_resources`, `*.snappfood.ir` host patterns and non-intrusive extension UI permissions while still blocking executables, scripts, dotfiles, symlinks, zip-slip and non-Snappfood host escalation.
 - Simplified `updater/install.py` and `dist/wheresmyfood-setup.zip`: default registration across Chrome, Edge, Brave and Chromium (`--browser all`), idempotent repair without downgrading an already-newer installed extension, automatic clipboard copy, local RTL `setup-guide.html`, and root double-click launchers (`Install-Windows.bat`, `Install-macOS.command`, `install-linux.sh`).
 - Validation: 96 JavaScript tests + 16 Python updater tests (112 total) and package verification passed.
+
+
+## Release 1.1.0 — Header version update popover and fast-only pricing (2026-11-24)
+
+- Removed `"داخل مرورگر خودت"` from the header badge, enlarged `v1.1.0` pill, and merged `"به‌روزرسانی ابزار"` + `"بررسی نسخهٔ جدید"` into an accessible header popover anchored to the version button (with outside-click and Escape-first dismissal).
+- Completely removed the unused rendered-menu price verification subsystem (`src/rendered-menu.js`, `tests/rendered-menu.test.js`, `SF_RENDER`, `verifyPrices` UI/filter option and styles).

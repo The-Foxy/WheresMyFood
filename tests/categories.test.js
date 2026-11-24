@@ -4,7 +4,6 @@ import {SERVICES,searchScope,vendorService} from '../src/categories.js';
 import {defaults,validateFilters,vendorPage,foodLink} from '../src/core.js';
 import {requestTarget,requestParameters,pageRead} from '../src/background.js';
 import {targetVariation} from '../src/food-focus.js';
-import {readRenderedMenu} from '../src/rendered-menu.js';
 import {Scanner} from '../src/engine.js';
 const context={lat:35.7,long:51.4};
 test('known service list excludes supermarket and rejects arbitrary destinations',()=>{
@@ -47,11 +46,6 @@ test('category is forwarded on every page; switching section invalidates a compl
  }},s=>{state=s;},{pause:0});
  await scan.run({...defaults,foodType:'7'});assert.equal(state.rows.length,1);assert.equal(calls[0][2],'7');
  await scan.run({...defaults,service:'caffe'},true);assert.equal(calls.filter(c=>c[0]==='menu').length,2);assert.equal(state.rows.length,1);assert.equal(state.rows[0].service,'caffe');assert.ok(state.rows[0].menuUrl.includes('/caffe/menu/'));
-});
-test('optional rendered price verification opens the chosen service route',async()=>{
- let removed=0;const api={tabs:{create:async v=>{assert.equal(v.url,'https://snappfood.ir/caffe/menu/abc/');return{id:1};},remove:async()=>{removed++;}},scripting:{executeScript:async v=>{assert.equal(v.args[2],'caffe');return[{result:{quotes:[{id:'123',price:100}],height:800,top:0,viewport:800,atBottom:true}}];}}};
- await readRenderedMenu(api,'abc',null,async()=>{},'caffe');assert.equal(removed,1);
- await assert.rejects(readRenderedMenu(api,'abc',null,async()=>{},'supermarket'));
 });
 test('serialized browser transport permits only the exact native v4 endpoint',async t=>{
  const old=globalThis.location;globalThis.location={origin:'https://snappfood.ir'};t.after(()=>{if(old===undefined)delete globalThis.location;else globalThis.location=old;});

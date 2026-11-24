@@ -114,4 +114,9 @@ test('wrong extension identity is distinguished from a missing or failed native 
 test('rating select renders all expected minimum rating options including 3+',()=>{
   const appSource=readFileSync(new URL('../src/app.js',import.meta.url),'utf8');
   assert.match(appSource,/<option value="0">فرقی نداره<\/option><option value="3">۳ به بالا<\/option>/);
+  assert.match(appSource,/sf-version-btn/);
+  assert.match(appSource,/sf-update-popover/);
+  assert.ok(!appSource.includes('داخل مرورگر خودت'));
+  assert.ok(!appSource.includes('بررسی دقیق‌تر قیمت'));
+  assert.ok(!appSource.includes('verifyPrices'));
 });
